@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>КиноПодборщик</title>
+<style>
+  :root {
+    --bg: #0f0f14;
+    --card: #1a1a24;
+    --card-hover: #23232f;
+    --accent: #ffb400;
+    --text: #f2f2f7;
+    --muted: #9a9aa8;
+    --border: #2a2a38;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px 16px 64px;
+  }
+  .container { max-width: 900px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 32px; }
+  h1 { font-size: 2rem; margin-bottom: 8px; }
+  h1 span { color: var(--accent); }
+  header p { color: var(--muted); font-size: 0.95rem; }
+  .breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 20px;
+    font-size: 0.9rem;
+    color: var(--muted);
+  }
+  .breadcrumbs button {
+    background: none;
+    border: none;
+    color: var(--accent);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 4px 0;
+  }
+  .breadcrumbs button:hover { text-decoration: underline; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s, border-color 0.15s;
+    text-align: left;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 1rem;
+  }
+  .card:hover {
+    background: var(--card-hover);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+  }
+  .card .emoji { font-size: 1.6rem; display: block; margin-bottom: 8px; }
+  .card .name { font-weight: 600; }
+  .card .count { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+
+  .item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin-bottom: 14px;
+  }
+  .item-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .item-title { font-size: 1.1rem; font-weight: 600; }
+  .item-meta { color: var(--muted); font-size: 0.9rem; white-space: nowrap; }
+  .rating {
+    color: var(--accent);
+    font-weight: 700;
+  }
+  .item-desc { color: #c8c8d4; font-size: 0.95rem; line-height: 1.5; }
+  .back-btn {
+    display: inline-block;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+    font-family: inherit;
+  }
+  .back-btn:hover { border-color: var(--accent); }
+  .hidden { display: none; }
+  footer { text-align: center; color: var(--muted); font-size: 0.8rem; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🎬 Кино<span>Подборщик</span></h1>
+    <p>Выбери, что посмотреть вечером</p>
+  </header>
+
+  <div class="breadcrumbs" id="breadcrumbs"></div>
+
+  <section id="view-menu" class="grid"></section>
+  <section id="view-categories" class="grid hidden"></section>
+  <section id="view-items" class="hidden"></section>
+
+  <footer>Данные хранятся в самом сайте — интернет не нужен.</footer>
+</div>
+
+<script>
+const CATALOG = {
+  movies: {
+    label: "🎬 Фильмы",
+    categories: {
+      comedy: {
+        label: "😂 Комедии",
+        items: [
+          { title: "Иван Васильевич меняет профессию", year: 1973, rating: 8.9, description: "Инженер Тимофеев изобретает машину времени и случайно меняется местами с царём Иваном Грозным. Классика советской комедии." },
+          { title: "Операция «Ы» и другие приключения Шурика", year: 1965, rating: 8.6, description: "Три новеллы о приключениях студента Шурика. Гайдай в лучшей форме." },
+          { title: "Джентльмены", year: 2019, rating: 8.5, description: "Американский журналист вляпывается в разборки британского наркобизнеса. Стильный гай-ричиевский криминал." },
+          { title: "Один дома", year: 1990, rating: 7.6, description: "Мальчик остаётся один дома и защищает его от двух незадачливых грабителей." }
+        ]
+      },
+      horror: {
+        label: "👻 Ужасы",
+        items: [
+          { title: "Сияние", year: 1980, rating: 8.4, description: "Писатель с семьёй присматривает за пустующим отелем и медленно сходит с ума. Кубрик и Кинг в одном флаконе." },
+          { title: "Реинкарнация", year: 2018, rating: 7.3, description: "После смерти бабушки в семье начинают происходить странные вещи. Медленный психологический хоррор." },
+          { title: "Заклятие", year: 2013, rating: 7.0, description: "Пара исследователей паранормальных явлений сталкивается с самым жутким делом в своей практике." },
+          { title: "Оно", year: 2017, rating: 7.3, description: "Дети из городка Дерри объединяются против клоуна-оборотня Пеннивайза." }
+        ]
+      },
+      action: {
+        label: "💥 Боевики",
+        items: [
+          { title: "Терминатор 2: Судный день", year: 1991, rating: 8.6, description: "Кэмерон, Шварценеггер и жидкий металл. Эталон жанра, к которому до сих пор возвращаются." },
+          { title: "Матрица", year: 1999, rating: 8.5, description: "Хакер Нео узнаёт, что мир вокруг — симуляция. Революция в спецэффектах и философии." },
+          { title: "Джон Уик", year: 2014, rating: 7.4, description: "Бывший наёмник возвращается к делу, когда кто-то убивает его собаку. Хореография — отдельный вид искусства." },
+          { title: "Безумный Макс: Дорога ярости", year: 2015, rating: 8.1, description: "Погоня длиной в целый фильм по пустоши. Практические эффекты и минимум диалогов." }
+        ]
+      },
+      scifi: {
+        label: "🚀 Фантастика",
+        items: [
+          { title: "Интерстеллар", year: 2014, rating: 8.6, description: "Отец отправляется за горизонт событий, чтобы найти новый дом для человечества. Нолан разбирается с любовью и гравитацией." },
+          { title: "Начало", year: 2010, rating: 8.6, description: "Кража идей из снов. Многоуровневый триллер с вращающимся коридором и финальным волчком." },
+          { title: "Бегущий по лезвию 2049", year: 2017, rating: 8.0, description: "Блейд-раннер раскрывает тайну, способную изменить отношения людей и репликантов. Визуально безупречно." },
+          { title: "Прибытие", year: 2016, rating: 7.9, description: "Лингвист пытается понять язык пришельцев — и заодно переосмысливает время и потерю." }
+        ]
+      },
+      drama: {
+        label: "🎭 Драмы",
+        items: [
+          { title: "Побег из Шоушенка", year: 1994, rating: 9.1, description: "Двадцать лет надежды в тюрьме строгого режима. Фильм №1 в топах — и не зря." },
+          { title: "Форрест Гамп", year: 1994, rating: 8.8, description: "Пробежал через полвека американской истории и остался хорошим человеком. Хэнкс в роли на все времена." },
+          { title: "Зелёная миля", year: 1999, rating: 9.0, description: "Надзиратель в блоке смертников встречает заключённого с даром исцеления. Кино, которое выжимает." },
+          { title: "Список Шиндлера", year: 1993, rating: 8.7, description: "Немецкий предприниматель спасает более тысячи евреев во время Холокоста. Чёрно-белая, тяжёлая, обязательная." }
+        ]
+      }
+    }
+  },
+  series: {
+    label: "📺 Сериалы",
+    categories: {
+      comedy: {
+        label: "😂 Комедии",
+        items: [
+          { title: "Друзья", year: 1994, rating: 8.9, description: "Шестеро друзей, кофейня Central Perk и десять сезонов уюта. Классика ситкомов." },
+          { title: "Офис", year: 2005, rating: 8.7, description: "Псевдодокументалка о буднях бумажного офиса в Скрэнтоне. Майкл Скотт — отдельный культурный код." },
+          { title: "Теория Большого взрыва", year: 2007, rating: 8.2, description: "Физики-гики, соседка-актриса и много шуток про научпоп." },
+          { title: "Бруклин 9-9", year: 2013, rating: 8.2, description: "Полицейский участок как большой детский сад. Тёплый и очень смешной." }
+        ]
+      },
+      detective: {
+        label: "🔍 Детективы",
+        items: [
+          { title: "Шерлок", year: 2010, rating: 9.0, description: "Современная интерпретация Конан Дойла. Камбербэтч, Фриман и бешеная динамика." },
+          { title: "Настоящий детектив", year: 2014, rating: 8.9, description: "Первый сезон: два детектива и 17 лет охоты за культом. Филигранно мрачно." },
+          { title: "Менталист", year: 2008, rating: 8.0, description: "Бывший медиум помогает полиции Калифорнии раскрывать дела — лёгкий процедурал." },
+          { title: "Кастл", year: 2009, rating: 7.9, description: "Писатель ходит на службу вместе с детективом ради вдохновения. Уютный процедурал на 8 сезонов." }
+        ]
+      },
+      scifi: {
+        label: "🚀 Фантастика",
+        items: [
+          { title: "Чёрное зеркало", year: 2011, rating: 8.6, description: "Антология о том, как технологии жрут нас по одной серии за вечер. Лучше не залпом." },
+          { title: "Очень странные дела", year: 2016, rating: 8.6, description: "Восьмидесятые, дети на великах, девочка с суперсилой и портал в изнанку." },
+          { title: "Игра престолов", year: 2011, rating: 9.2, description: "Семь королевств, интриги и драконы. Финал не всем зашёл, но первые 6 сезонов — монументальны." },
+          { title: "Мир Дикого Запада", year: 2016, rating: 8.5, description: "Парк с андроидами, где всё идёт не по сценарию. Головоломный сюжет и шикарный визуал." }
+        ]
+      },
+      drama: {
+        label: "🎭 Драмы",
+        items: [
+          { title: "Во все тяжкие", year: 2008, rating: 9.5, description: "Учитель химии с раком лёгких решает сварить мет. Пять сезонов идеальной дуги персонажа." },
+          { title: "Клан Сопрано", year: 1999, rating: 9.2, description: "Босс мафии Нью-Джерси ходит к психотерапевту. Родоначальник «серьёзной» телевизионной драмы." },
+          { title: "Прослушка", year: 2002, rating: 9.3, description: "Балтимор во всех слоях — от улиц до редакций. Медленно, но навсегда." },
+          { title: "Доктор Хаус", year: 2004, rating: 8.7, description: "Гениальный мизантроп-диагност и его команда. Медицинский процедурал с характером." }
+        ]
+      }
+    }
+  }
+};
+
+const elMenu = document.getElementById("view-menu");
+const elCats = document.getElementById("view-categories");
+const elItems = document.getElementById("view-items");
+const elCrumbs = document.getElementById("breadcrumbs");
+
+function show(view) {
+  elMenu.classList.add("hidden");
+  elCats.classList.add("hidden");
+  elItems.classList.add("hidden");
+  view.classList.remove("hidden");
+}
+
+function renderCrumbs(parts) {
+  elCrumbs.innerHTML = "";
+  parts.forEach((part, i) => {
+    if (i > 0) {
+      const sep = document.createElement("span");
+      sep.textContent = "›";
+      elCrumbs.appendChild(sep);
+    }
+    if (part.onClick) {
+      const btn = document.createElement("button");
+      btn.textContent = part.label;
+      btn.onclick = part.onClick;
+      elCrumbs.appendChild(btn);
+    } else {
+      const span = document.createElement("span");
+      span.textContent = part.label;
+      elCrumbs.appendChild(span);
+    }
+  });
+}
+
+function renderMenu() {
+  elMenu.innerHTML = "";
+  Object.entries(CATALOG).forEach(([key, section]) => {
+    const btn = document.createElement("button");
+    btn.className = "card";
+    const count = Object.values(section.categories).reduce((s, c) => s + c.items.length, 0);
+    btn.innerHTML = `
+      <span class="emoji">${section.label.split(" ")[0]}</span>
+      <span class="name">${section.label.split(" ").slice(1).join(" ")}</span>
+      <div class="count">${Object.keys(section.categories).length} категорий · ${count} тайтлов</div>
+    `;
+    btn.onclick = () => renderCategories(key);
+    elMenu.appendChild(btn);
+  });
+  renderCrumbs([{ label: "Главная" }]);
+  show(elMenu);
+}
+
+function renderCategories(sectionKey) {
+  const section = CATALOG[sectionKey];
+  elCats.innerHTML = "";
+  Object.entries(section.categories).forEach(([catKey, cat]) => {
+    const btn = document.createElement("button");
+    btn.className = "card";
+    btn.innerHTML = `
+      <span class="emoji">${cat.label.split(" ")[0]}</span>
+      <span class="name">${cat.label.split(" ").slice(1).join(" ")}</span>
+      <div class="count">${cat.items.length} тайтлов</div>
+    `;
+    btn.onclick = () => renderItems(sectionKey, catKey);
+    elCats.appendChild(btn);
+  });
+  renderCrumbs([
+    { label: "Главная", onClick: renderMenu },
+    { label: section.label }
+  ]);
+  show(elCats);
+}
+
+function renderItems(sectionKey, catKey) {
+  const section = CATALOG[sectionKey];
+  const cat = section.categories[catKey];
+  elItems.innerHTML = "";
+
+  const back = document.createElement("button");
+  back.className = "back-btn";
+  back.textContent = "← Назад к категориям";
+  back.onclick = () => renderCategories(sectionKey);
+  elItems.appendChild(back);
+
+  cat.items.forEach(item => {
+    const div = document.createElement("div");
+    div.className = "item";
+    div.innerHTML = `
+      <div class="item-head">
+        <div class="item-title">${item.title}</div>
+        <div class="item-meta">${item.year} · <span class="rating">⭐ ${item.rating}</span>/10</div>
+      </div>
+      <div class="item-desc">${item.description}</div>
+    `;
+    elItems.appendChild(div);
+  });
+
+  renderCrumbs([
+    { label: "Главная", onClick: renderMenu },
+    { label: section.label, onClick: () => renderCategories(sectionKey) },
+    { label: cat.label }
+  ]);
+  show(elItems);
+}
+
+renderMenu();
+</script>
+</body>
+</html>
